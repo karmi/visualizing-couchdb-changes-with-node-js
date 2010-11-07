@@ -9,29 +9,35 @@
   <style>
     body
       { font-family: 'Helvetica', sans-serif; font-size: 86%; }
-    p
-      { border-bottom: 1px solid #ccc; margin: 1em 0 0 0; padding: 0 0 1em 0; }
     #changes
       { border: 1px solid #ccc;
-        width: 600px;
-        height: 200px;
+        width: 800px;
+        height: 300px;
         overflow: hidden;
         position: relative;
       }
     #changes .interval
-      { background: #E4E4E4;
+      { background: #ececec;
         width: 16px; height: 100%;
         margin: 0 0 0 2px;
         position: absolute;
         bottom: 0;
         right: -20px;
       }
+    #changes .interval .counter
+      {
+        color: #999;
+        font-size: 80%;
+        text-align: center;
+        width: 100%;
+        z-index: 900;
+      }
     #changes .interval p
-      { background-color: #3278A8;
+      { background-color: #0091e5;
         margin: 0 0px 0 4px;
         padding: 0;
         width: 16px;
-        height: 4px;
+        height: 2px;
         border: none;
         position: absolute;
         bottom: 0;
@@ -49,46 +55,48 @@
     socket.connect();
 
     var db,
-        period = 3000;
+        period = 1000;
         changes_in_current_period = 0;
 
     var Change = function(id, doc) {
-      console.log('new Change', id);
+      console.log('new change:', id);
       var self = this;
       this.id  = id;
       this.url = function() { return 'http://'+db.client.host+':'+db.client.port+'/'+db.name+'/'+this.id };
-      this.position = function() { return changes_in_current_period*6+'px' };
+      this.position = function() { return changes_in_current_period*3+'px' };
       var glyph = $('<p title="'+this.url()+'"></p>').css( { bottom : this.position() } );
       glyph.click(function() {document.location.href=self.url()});
       $('#changes .interval:last').append(glyph);
       changes_in_current_period += 1;
+      $('#changes .interval:last').trigger('update_counter');
       return this;
     }
 
     var looper = setInterval( function() {
-      $('#changes').append($('<div class="interval"></div>'));
+      $('#changes').append($('<div class="interval"><div class="counter">0</div></div>'));
       $('#changes .interval').animate({'right':'+=20px'})
       changes_in_current_period = 0;
     }, period);
 
     $('#stop').click(function() { clearInterval(looper) });
 
+    $('#changes .interval').live('update_counter', function(e) {
+      console.log('update counter called')
+      $(this).find('.counter').text(changes_in_current_period);
+    });
+
     socket.on('connect', function() {
-      console.log('Connected to:', socket.host)
+      // console.log('Connected to:', socket.host)
     });
 
     socket.on('message', function(message) {
-      console.log('Received message:', message)
+      // console.log('Received message:', message)
       if (message.client) {
         db = message;
-        $('<p>Waiting for changes in database <strong>' + db.name + '</strong></p>').appendTo('body');
+        $('<p>Changes in database <strong>' + db.name + '</strong></p>').appendTo('body');
       };
       if (message.id) {
-        console.log('New change from db')
         new Change(message.id);
-        $('<p>' + message.seq + ': ' + message.id +
-          '<pre>'+JSON.stringify(message.doc)+'</pre>' +
-          '</p>').appendTo('body');
       };
     });
   </script>
