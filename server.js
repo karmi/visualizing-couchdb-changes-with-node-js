@@ -12,7 +12,6 @@ var client  = couchdb.createClient(5984, 'localhost'),
 
 // -- Node.js Server
 server = http.createServer(function(req, res){
-  // res.send('hello world');
   res.writeHead(200, {'Content-Type': 'text/html'})
 
   fs.readFile(__dirname + '/index.html', function(err, data){
@@ -22,7 +21,7 @@ server = http.createServer(function(req, res){
 	});
 
 })
-server.listen(port);
+server.listen(port, '0.0.0.0');
 
 
 // -- Setup Socket.IO
