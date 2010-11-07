@@ -1,8 +1,14 @@
+require.paths.unshift('./lib/node-couchdb/lib/');
+
 var http    = require('http'),
     io      = require('socket.io'),
+    couchdb = require('couchdb')
     fs      = require('fs'),
     port    = 8000;
 
+var client  = couchdb.createClient(5984, 'localhost'),
+    db      = client.db('test'),
+    stream  = db.changesStream({ include_docs:true });
 
 // -- Node.js Server
 server = http.createServer(function(req, res){
@@ -27,8 +33,11 @@ io.on('connection', function(client){
 	console.log('Client connected');
 
 	client.broadcast('New client connected...');
+  client.send(db)
 
-  setInterval(function() { client.send('HEY!') }, 1000)
+  stream.addListener('data', function(change) {
+    client.send(change)
+  });
 
 	client.on('message', function(message){
 		client.broadcast(message);
