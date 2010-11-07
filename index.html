@@ -6,33 +6,90 @@
   <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
   <script src="/socket.io/socket.io.js"></script>
 
-  <script>
-     var socket = new io.Socket(null, {port: 8000});
-     socket.connect();
-
-     var db,
-         doc_url = function(id) { return 'http://'+db.client.host+':'+db.client.port+'/'+db.name+'/'+id };
-
-     socket.on('connect', function() {
-       console.log('Connected to:', socket.host)
-     });
-
-     socket.on('message', function(message) {
-       console.log('Received message:', message)
-       if (message.client) {
-         db = message;
-         $('<p>Waiting for changes in database <strong>' + db.name + '</strong></p><hr>').appendTo('body');
-       };
-       if (message.id) {
-         $('<p>' + message.seq + ': ' +
-           '<a href="' + doc_url(message.id) + '">' + message.id + '</a>' +
-           '<pre>'+JSON.stringify(message.doc)+'</pre>' +
-           '</p>').appendTo('body');
-      };
-     });
-  </script>
+  <style>
+    body
+      { font-family: 'Helvetica', sans-serif; font-size: 86%; }
+    p
+      { border-bottom: 1px solid #ccc; margin: 1em 0 0 0; padding: 0 0 1em 0; }
+    #changes
+      { border: 1px solid #333;
+        width: 600px;
+        height: 200px;
+        overflow: auto;
+        position: relative;
+      }
+    #changes .interval
+      { background: #ccc;
+        width: 8px; height: 100%;
+        margin: 0 2px 0 2px;
+        position: absolute;
+        bottom: 0;
+        right: 0;
+      }
+    #changes .interval p
+      { background-color: #3278A8;
+        margin: 0;
+        padding: 0;
+        width: 8px;
+        height: 8px;
+        border: none;
+        position: absolute;
+        bottom: 0;
+        right: 0;
+      }
+  </style>
 
 </head>
 <body>
+  <div id="changes"></div>
+  <button id="stop" name="stop">stop</button>
+
+  <script>
+    var socket = new io.Socket(null, {port: 8000});
+    socket.connect();
+
+    var db,
+        period = 3000;
+        changes_in_current_period = 0;
+
+    var Change = function(id, doc) {
+      console.log('new Change', id)
+      this.id  = id;
+      this.url = function(id) { return 'http://'+db.client.host+':'+db.client.port+'/'+db.name+'/'+id };
+      this.position = function() { console.log(changes_in_current_period); return changes_in_current_period*10+'px' };
+      var glyph = $('<p title="'+this.id+'"></p>').css( { bottom : this.position() } );
+      $('#changes .interval:last').append(glyph);
+      changes_in_current_period += 1;
+      return this;
+    }
+
+    var looper = setInterval( function() {
+      $('#changes .interval').animate({'left':'-=10px'})
+      $('#changes').append($('<div class="interval"></div>'));
+      changes_in_current_period = 0;
+    }, period);
+
+    $('#stop').click(function() { clearInterval(looper) });
+
+    socket.on('connect', function() {
+      console.log('Connected to:', socket.host)
+    });
+
+    socket.on('message', function(message) {
+      console.log('Received message:', message)
+      if (message.client) {
+        db = message;
+        $('<p>Waiting for changes in database <strong>' + db.name + '</strong></p>').appendTo('body');
+      };
+      if (message.id) {
+        console.log('New change from db')
+        new Change(message.id);
+        $('<p>' + message.seq + ': ' + message.id +
+          '<pre>'+JSON.stringify(message.doc)+'</pre>' +
+          '</p>').appendTo('body');
+      };
+    });
+  </script>
+
 </body>
 </html>
