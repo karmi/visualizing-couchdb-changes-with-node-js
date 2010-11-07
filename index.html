@@ -12,26 +12,26 @@
     p
       { border-bottom: 1px solid #ccc; margin: 1em 0 0 0; padding: 0 0 1em 0; }
     #changes
-      { border: 1px solid #333;
+      { border: 1px solid #ccc;
         width: 600px;
         height: 200px;
-        overflow: auto;
+        overflow: hidden;
         position: relative;
       }
     #changes .interval
-      { background: #ccc;
-        width: 8px; height: 100%;
-        margin: 0 2px 0 2px;
+      { background: #E4E4E4;
+        width: 16px; height: 100%;
+        margin: 0 0 0 2px;
         position: absolute;
         bottom: 0;
-        right: 0;
+        right: -20px;
       }
     #changes .interval p
       { background-color: #3278A8;
-        margin: 0;
+        margin: 0 0px 0 4px;
         padding: 0;
-        width: 8px;
-        height: 8px;
+        width: 16px;
+        height: 4px;
         border: none;
         position: absolute;
         bottom: 0;
@@ -53,19 +53,21 @@
         changes_in_current_period = 0;
 
     var Change = function(id, doc) {
-      console.log('new Change', id)
+      console.log('new Change', id);
+      var self = this;
       this.id  = id;
-      this.url = function(id) { return 'http://'+db.client.host+':'+db.client.port+'/'+db.name+'/'+id };
-      this.position = function() { console.log(changes_in_current_period); return changes_in_current_period*10+'px' };
-      var glyph = $('<p title="'+this.id+'"></p>').css( { bottom : this.position() } );
+      this.url = function() { return 'http://'+db.client.host+':'+db.client.port+'/'+db.name+'/'+this.id };
+      this.position = function() { return changes_in_current_period*6+'px' };
+      var glyph = $('<p title="'+this.url()+'"></p>').css( { bottom : this.position() } );
+      glyph.click(function() {document.location.href=self.url()});
       $('#changes .interval:last').append(glyph);
       changes_in_current_period += 1;
       return this;
     }
 
     var looper = setInterval( function() {
-      $('#changes .interval').animate({'left':'-=10px'})
       $('#changes').append($('<div class="interval"></div>'));
+      $('#changes .interval').animate({'right':'+=20px'})
       changes_in_current_period = 0;
     }, period);
 
