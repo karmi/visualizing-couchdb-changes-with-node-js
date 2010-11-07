@@ -5,6 +5,7 @@
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
   <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
   <script src="/socket.io/socket.io.js"></script>
+  <script src="/config.json"></script>
 
   <style>
     body
@@ -27,6 +28,7 @@
     #changes .interval .counter
       {
         color: #999;
+        background-color: #ececec;
         font-size: 80%;
         text-align: center;
         width: 100%;
@@ -51,7 +53,7 @@
   <button id="stop" name="stop">stop</button>
 
   <script>
-    var socket = new io.Socket(null, {port: 8000});
+    var socket = new io.Socket(null, {port: config.app.port});
     socket.connect();
 
     var db,
@@ -90,10 +92,10 @@
     });
 
     socket.on('message', function(message) {
-      // console.log('Received message:', message)
+      console.log('Received message:', message)
       if (message.client) {
         db = message;
-        $('<p>Changes in database <strong>' + db.name + '</strong></p>').appendTo('body');
+        $('<p>Changes in database <strong>' + 'http://'+db.client.host+':'+db.client.port+'/'+db.name + '</strong></p>').appendTo('body');
       };
       if (message.id) {
         new Change(message.id);
