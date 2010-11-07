@@ -1,0 +1,12 @@
+config = {
+  app : {
+    port : 8000,
+    host : '0.0.0.0'
+  },
+  couchdb : {
+    host : 'localhost',
+    port : '5984',
+    db   : 'test',
+    options : { include_docs:true }
+  }
+}
