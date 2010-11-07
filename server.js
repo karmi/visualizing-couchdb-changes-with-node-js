@@ -1,27 +1,39 @@
 require.paths.unshift('./lib/node-couchdb/lib/');
 
+require('./config.json')
+
 var http    = require('http'),
+    url     = require('url'),
     io      = require('socket.io'),
     couchdb = require('couchdb')
-    fs      = require('fs'),
-    port    = 8000;
+    fs      = require('fs');
 
-var client  = couchdb.createClient(5984, 'localhost'),
-    db      = client.db('test'),
-    stream  = db.changesStream({ include_docs:true });
+var client  = couchdb.createClient(config.couchdb.port, config.couchdb.host),
+    db      = client.db(config.couchdb.db),
+    stream  = db.changesStream(config.couchdb.options);
 
 // -- Node.js Server
 server = http.createServer(function(req, res){
-  res.writeHead(200, {'Content-Type': 'text/html'})
+  var path = url.parse(req.url).pathname;
 
-  fs.readFile(__dirname + '/index.html', function(err, data){
-		if (err) return '404';
-		res.write(data, 'utf8');
-		res.end();
-	});
-
+	switch (path) {
+	  case '/':
+	    res.writeHead(200, {'Content-Type': 'text/html'})
+      fs.readFile(__dirname + '/index.html', function(err, data){
+    		res.write(data, 'utf8');
+    		res.end();
+    	});
+    	break;
+    case '/config.json':
+	    res.writeHead(200, {'Content-Type': 'text/javascript'})
+      fs.readFile(__dirname + '/config.json', function(err, data){
+    		res.write(data, 'utf8');
+    		res.end();
+    	});
+    	break;
+  };
 })
-server.listen(port, '0.0.0.0');
+server.listen(config.app.port, config.app.host);
 
 
 // -- Setup Socket.IO
@@ -49,4 +61,4 @@ io.on('connection', function(client){
 
 });
 
-console.log('Server running at http://127.0.0.1:'+port+'/');
+console.log('Server running at http://'+config.app.host+':'+config.app.port+'/');
