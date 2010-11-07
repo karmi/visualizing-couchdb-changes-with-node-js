@@ -3,23 +3,36 @@
 <head>
   <title>CouchDB Changes</title>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
   <script src="/socket.io/socket.io.js"></script>
 
   <script>
      var socket = new io.Socket(null, {port: 8000});
      socket.connect();
 
-     socket.on('connect', function(){
+     var db,
+         doc_url = function(id) { return 'http://'+db.client.host+':'+db.client.port+'/'+db.name+'/'+id };
+
+     socket.on('connect', function() {
        console.log('Connected to:', socket.host)
      });
 
-     socket.on('message', function(message){
+     socket.on('message', function(message) {
        console.log('Received message:', message)
+       if (message.client) {
+         db = message;
+         $('<p>Waiting for changes in database <strong>' + db.name + '</strong></p><hr>').appendTo('body');
+       };
+       if (message.id) {
+         $('<p>' + message.seq + ': ' +
+           '<a href="' + doc_url(message.id) + '">' + message.id + '</a>' +
+           '<pre>'+JSON.stringify(message.doc)+'</pre>' +
+           '</p>').appendTo('body');
+      };
      });
   </script>
 
 </head>
 <body>
-
 </body>
 </html>
