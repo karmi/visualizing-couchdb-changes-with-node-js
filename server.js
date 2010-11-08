@@ -12,13 +12,15 @@ var http    = require('http'),
 var client  = couchdb.createClient(config.couchdb.port, config.couchdb.host),
     db      = client.db(config.couchdb.db);
 
+// -- Connect to _changes and attach passed callback --------------------------
+
 var attach_couchdb_changes_stream = function(callback) {
   var stream,
       since;
 
-  // Get 'update_seq' from database info and use it for 'since' param
   db.info(function(err, data) {
     if (err) throw new Error(JSON.stringify(err));
+    // Get 'update_seq' from database info and use it for 'since' param
     since = data.update_seq;
     stream = db.changesStream({since:since});
     console.log('db.update_seq: ' + since);
@@ -31,7 +33,8 @@ var attach_couchdb_changes_stream = function(callback) {
 }
 
 
-// -- Node.js Server
+// -- Node.js Server ----------------------------------------------------------
+
 server = http.createServer(function(req, res){
   var path = url.parse(req.url).pathname;
 
@@ -55,7 +58,8 @@ server = http.createServer(function(req, res){
 server.listen(config.app.port, config.app.host);
 
 
-// -- Setup Socket.IO
+// -- Setup Socket.IO ---------------------------------------------------------
+
 var io = io.listen(server);
 
 io.on('connection', function(client){
@@ -68,9 +72,6 @@ io.on('connection', function(client){
   attach_couchdb_changes_stream(function(change) {
     client.send(change)
   });
-
-  client.on('message',    function() {});
-	client.on('disconnect', function() {});
 
 });
 
