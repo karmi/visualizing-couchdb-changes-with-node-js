@@ -16,7 +16,7 @@ Initialize the submodules:
 
     $ git submodule update --init
 
-Copy (and posibly edit) the configuration file
+Copy (and posibly edit) the configuration file <small>(it listens on <http://localhost:5984/test> by default)</small>:
 
     $ cp config.example.json config.json
 
@@ -24,9 +24,13 @@ Start the _Node.js_ server:
 
     $ node server.js
 
-Open the client [application](http://localhost:8000/) in browser
+Open the client [application](http://localhost:8000/) in browser:
 
     $ open http://localhost:8000/
+
+Now make some changes in the database and see them in you browser, instantly:
+
+    $ curl -H 'Content-Type: application/json' -X POST http://localhost:5984/test -d '{"foo":"bar"}'
 
 -----
 
