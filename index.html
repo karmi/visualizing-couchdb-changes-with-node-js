@@ -53,12 +53,21 @@
   <button id="stop" name="stop">stop</button>
 
   <script>
+
+    // -- Connect via socket.io -----------------------------------------------
+
     var socket = new io.Socket(null, {port: config.app.port});
     socket.connect();
+
+
+    // -- Setup variables -----------------------------------------------------
 
     var db,
         period = 1000;
         changes_in_current_period = 0;
+
+
+    // -- Change entity -------------------------------------------------------
 
     var Change = function(id, doc) {
       console.log('new change:', id);
@@ -80,12 +89,18 @@
       changes_in_current_period = 0;
     }, period);
 
+
+    // -- Attach GUI events ---------------------------------------------------
+
     $('#stop').click(function() { clearInterval(looper) });
 
     $('#changes .interval').live('update_counter', function(e) {
       console.log('update counter called')
       $(this).find('.counter').text(changes_in_current_period);
     });
+
+
+    // -- Attach socket.io events ---------------------------------------------
 
     socket.on('connect', function() {
       // console.log('Connected to:', socket.host)
