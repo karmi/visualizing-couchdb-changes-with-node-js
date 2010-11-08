@@ -1,4 +1,6 @@
-require.paths.unshift('./lib/node-couchdb/lib/');
+require.paths.unshift('./lib/node-couchdb/lib/',
+                      './lib/socket-io/lib/',
+                      './lib/socket.io-node/lib/');
 
 require('./config.json')
 
