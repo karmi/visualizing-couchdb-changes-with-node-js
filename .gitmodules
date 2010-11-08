@@ -1,3 +1,9 @@
 [submodule "lib/node-couchdb"]
 	path = lib/node-couchdb
 	url = https://github.com/felixge/node-couchdb.git
+[submodule "lib/socket.io"]
+	path = lib/socket.io
+	url = http://github.com/LearnBoost/Socket.IO.git
+[submodule "lib/socket.io-node"]
+	path = lib/socket.io-node
+	url = http://github.com/LearnBoost/Socket.IO-node.git
