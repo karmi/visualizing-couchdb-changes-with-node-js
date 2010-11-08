@@ -5,12 +5,25 @@ require('./config.json')
 var http    = require('http'),
     url     = require('url'),
     io      = require('socket.io'),
-    couchdb = require('couchdb')
+    couchdb = require('couchdb'),
     fs      = require('fs');
 
 var client  = couchdb.createClient(config.couchdb.port, config.couchdb.host),
     db      = client.db(config.couchdb.db),
-    stream  = db.changesStream(config.couchdb.options);
+    stream,
+    since   = 0;
+
+var stream_x = function() {
+  db.info(function(err, data) {
+      if (err) throw new Error(JSON.stringify(err));
+      since = data.update_seq;
+      console.log('db.update_seq: ' + since);
+      // Get update_seq from db info and use it for 'since' param
+      stream  = db.changesStream({since:since});
+  });
+  return stream;
+}
+
 
 // -- Node.js Server
 server = http.createServer(function(req, res){
@@ -46,9 +59,13 @@ io.on('connection', function(client){
 	client.broadcast('New client connected...');
   client.send(db)
 
-  stream.addListener('data', function(change) {
-    client.send(change)
-  });
+  try {
+    stream_x().addListener('data', function(change) {
+      client.send(change)
+    });
+  } catch(e) {
+    console.error(e);
+  }
 
 	client.on('message', function(message){
 		client.broadcast(message);
