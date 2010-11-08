@@ -6,21 +6,27 @@ var http    = require('http'),
     url     = require('url'),
     io      = require('socket.io'),
     couchdb = require('couchdb'),
+    sys     = require('sys'),
     fs      = require('fs');
 
 var client  = couchdb.createClient(config.couchdb.port, config.couchdb.host),
-    db      = client.db(config.couchdb.db),
-    stream,
-    since   = 0;
+    db      = client.db(config.couchdb.db);
 
-var stream_x = function() {
+var attach_couchdb_changes_stream = function(callback) {
+  var stream,
+      since;
+
+  // Get 'update_seq' from database info and use it for 'since' param
   db.info(function(err, data) {
-      if (err) throw new Error(JSON.stringify(err));
-      since = data.update_seq;
-      console.log('db.update_seq: ' + since);
-      // Get update_seq from db info and use it for 'since' param
-      stream  = db.changesStream({since:since});
+    if (err) throw new Error(JSON.stringify(err));
+    since = data.update_seq;
+    stream = db.changesStream({since:since});
+    console.log('db.update_seq: ' + since);
+
+    // Attach callback for socket.io
+    stream.addListener('data', callback);
   });
+
   return stream;
 }
 
@@ -53,28 +59,18 @@ server.listen(config.app.port, config.app.host);
 var io = io.listen(server);
 
 io.on('connection', function(client){
+  // console.log('Client connected:', sys.inspect(client));
 
-	console.log('Client connected');
-
-	client.broadcast('New client connected...');
+  // Send CouchDB connection info
   client.send(db)
 
-  try {
-    stream_x().addListener('data', function(change) {
-      client.send(change)
-    });
-  } catch(e) {
-    console.error(e);
-  }
+  // Send CouchDB _changes
+  attach_couchdb_changes_stream(function(change) {
+    client.send(change)
+  });
 
-	client.on('message', function(message){
-		client.broadcast(message);
-		client.send(message);
-	});
-
-	client.on('disconnect', function(){
-		console.log('Client disconnected');
-	});
+  client.on('message',    function() {});
+	client.on('disconnect', function() {});
 
 });
 
