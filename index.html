@@ -93,7 +93,10 @@
 
     // -- Attach GUI events ---------------------------------------------------
 
-    $('#stop').click(function() { clearInterval(looper) });
+    $('#stop').click(function() {
+      clearInterval(looper);
+      socket.disconnect();
+    });
 
     $('#changes .interval').live('update_counter', function(e) {
       console.log('update counter called')
