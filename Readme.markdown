@@ -3,7 +3,7 @@
 An experiment in basic real-time visualization of _CouchDB_ [`_changes` stream](http://guide.couchdb.org/draft/notifications.html)
 with [_Node.js_](http://nodejs.org/) and [Socket.IO](http://socket.io/).
 
-![Screenshot Small](./raw/master/screenshot-small.png)
+![Screenshot Small](./raw/master/screenshot.png)
 
 ## Installation ##
 
