@@ -9,12 +9,14 @@
 
   <style>
     body
-      { font-family: 'Helvetica', sans-serif; font-size: 86%; }
+      { color: #1a2c37;
+        font-family: 'Helvetica', sans-serif; font-size: 86%; }
     #changes
       { border: 1px solid #ccc;
         height: 300px;
         overflow: hidden;
-        position: relative; }
+        position: relative;
+        margin-bottom: 1em; }
     #changes-container
       { width: 100%;
         height: 100%;
@@ -166,7 +168,7 @@
       // console.log('Received message:', message)
       if (message.client) {
         db = message;
-        $('body').append( $('<p>Changes in database <strong>' +
+        $('body').append( $('<p>Displaying changes in database <strong>' +
                             'http://'+db.client.host+':'+db.client.port+'/'+db.name +
                             '</strong></p>') );
       };
