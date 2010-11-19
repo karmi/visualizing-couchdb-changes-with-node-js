@@ -12,29 +12,23 @@
       { font-family: 'Helvetica', sans-serif; font-size: 86%; }
     #changes
       { border: 1px solid #ccc;
-        width: 800px;
         height: 300px;
         overflow: hidden;
-        position: relative;
-      }
-    #changes-secondary-cnt /* nove - vnitrni kontejner */
-      { width: 854px; /* sirka o 3 * OFFSET vetsi nez u #changes - OFFSET = INTERVAL_WIDTH + MARGIN = 16 + 2, aby nebylo videt dojizdeni vlevo, umistim to o 2 offsety od leveho kraje, jeden offset z prava je pro nove vznikle .intervals */
-        height: 300px;
+        position: relative; }
+    #changes-container
+      { width: 100%;
+        height: 100%;
         overflow: hidden;
-        position: absolute;
-        left: -36px; /* tady umistuju o 2 offsety doleva */
-      }
-    #changes .interval /* nema absolutni pozicovani, namisto toho se radi hezky dle float:right */
+        position: absolute; }
+    #changes .interval
       { background: #ececec;
         float: right;
         width: 16px; height: 100%;
-        margin: 0 0 0 2px;
-      }
-    #changes .interval .inner /* ciste jako dusledek predchoziho */
+        margin: 0 0 0 2px; }
+    #changes .interval .inner
       { position:absolute;
         width: 16px;
-        height: 300px;
-      }
+        height: 300px; }
     #changes .interval .counter
       {
         color: #999;
@@ -43,8 +37,7 @@
         text-align: center;
         width: 100%;
         z-index: 900;
-        position: absolute;
-      }
+        position: absolute; }
     #changes .interval p
       { background-color: #0091e5;
         margin: 0 0px 0 4px;
@@ -54,17 +47,15 @@
         border: none;
         position: absolute;
         bottom: 0;
-        right: 0;
-      }
+        right: 0; }
     #changes .interval p.hide
-      { display: none; 
-      }
+      { display: none; }
   </style>
 
 </head>
 <body>
   <div id="changes">
-    <div id="changes-secondary-cnt">
+    <div id="changes-container">
       <div class="interval">
         <div class="inner">
           <div class="counter">0</div>
@@ -73,7 +64,7 @@
       </div>
     </div>
   </div>
-  
+
   <button id="stop" name="stop">stop</button>
 
   <script>
@@ -84,71 +75,59 @@
     socket.connect();
 
 
-    // -- Setup variables -----------------------------------------------------
+    // -- Setup variables and onload handler ----------------------------------
 
     var db,
         period = 1000,
         changes_in_current_period = 0,
-        el_secondary_cnt = null,
-        shift_offset = -1;
+        shift_offset = -1,
+        container  = null;
 
     $(function() {
-      // nastavime par promennych pote, co je document ready
-      el_secondary_cnt = $('#changes-secondary-cnt'),
-      shift_offset = el_secondary_cnt.find('.interval').width(); // dopocitame (vyjde 16), pri zmene staci upravit CSS, nemusi se sahat do JS
-      
-      // namisto neustaleho vytvareni novych a novych event handleru pro kazdy <p>, definujeme jeden globalni. dalsi uspora a zabraneni memleaks
-      el_secondary_cnt.click(function(evt) {
-        if (evt.target.tagName == 'p' && evt.target.title) document.location.href = evt.target.title;
-      });
+      shift_offset = $('#changes-container .interval').first().width(),
+      container = $('#changes-container');
+      container.css( { width : container.parent().width() + ( shift_offset * 2 ),
+                       left  : -(shift_offset*2) });
     });
 
-    // -- Change entity -------------------------------------------------------
+    // -- Change object -------------------------------------------------------
 
     var Change = function(id, doc) {
-      console.log('new change:', id);
       var self = this;
       this.id  = id;
-      this.url = function() { return 'http://'+db.client.host+':'+db.client.port+'/'+db.name+'/'+this.id };
+      this.url = function() { return 'http://' + db.client.host + ':' + [db.client.port, db.name, this.id].join('/') };
       this.position = function() { return changes_in_current_period*3+'px' };
-      var glyph = $('<p title="'+this.url()+'"></p>').css( { bottom : this.position() } );
+
+      // Build element for representing the change
+      var glyph = $('#changes-container .interval:first p').clone().
+                                                        removeClass('hide').
+                                                        css({ bottom: this.position() }).
+                                                        attr('title', this.url());
+      // Attach events
       glyph.click(function() {document.location.href=self.url()});
-      $('#changes-secondary-cnt .interval:last').append(glyph);
-      changes_in_current_period += 1;
-      $('#changes-secondary-cnt .interval:last').trigger('update_counter');
+
+      // Insert element into DOM
+      $('#changes-container .interval:nth-child(2) .inner').append(glyph);
+
       return this;
-    }
+    };
 
-    
-    function newChange(id) {
-      // nevidim moc duvodu, psat pro to tridu, navic v jquery velice podivny memory-leaks implementaci, ale klidne si ji napis, pokud chces..
-      var url = 'http://' + db.client.host + ':' + [db.client.port, db.name, id].join('/'), // dobry trik pro zprehledneni kodu, navic nejrychlejsi StringBuilder..
-          bottomOffset = changes_in_current_period * 3;
-      
-      // naklonojume potrebnou cast z prvniho prvku, mame ho v html, slouzi tedy rovnou jako sablona, nemusime psat zadne HTML v JS.
-      var glyph = el_secondary_cnt.find('.interval:first p').clone().removeClass('hide').css({ bottom: bottomOffset + 'px' }).attr('title', url);
-      // a pridame ke druhemu (tj. aktualnimu). prvni je pusher/sablona, nema zadna data, nikdy neni videt
-      el_secondary_cnt.find('.interval:nth-child(2) .inner').append($(glyph));
-
-      changes_in_current_period++
-      // tohle chapu, co dela, ale pripada mi to trochu jako od "architecture astronaut"
-      // ja bych to updatnul tady a neodskakoval do nejake fancy update, ale uznavam, jquery neznam...
-      el_secondary_cnt.find('.interval:nth-child(2)').trigger('update_counter');
-    }
+    // -- Looper --------------------------------------------------------------
 
     var looper = setInterval( function() {
-      // najdeme prvni, ktery ma dvoji funkci - pusher kopajici ten za nim (zprava doleva, protoze align: right), a zaroven html sablona pro nove .interval elementy
-      var el_first = $('#changes-secondary-cnt .interval:first'),
-          el_new = el_first.clone(); // opet klonujeme, tentokrat cely .interval
+      var pusher  = $('#changes-container .interval:first'), // Get reference to the first, hidden "pusher" interval element
+          current = pusher.clone();                          // Clone this element as current interval element...
 
-      el_new.insertAfter(el_first);
-      // zmenime sirku prvniho, bude slouzit jako pusher, ktery nakopne ten za nim a tim vlastne vyleze mimo pravou skrytou cast
-      el_first.css({ width: 0 }).animate({ width: shift_offset + 'px' });
+      pusher.after(current);                                 // ... and insert it after "pusher"
 
-      // a jeste se koukneme, jestli na posledni nevylezl vlevo mimo viewport, v tom pripade ho smazeme
-      var el_last = el_secondary_cnt.find('.interval:last');
-      if (el_last[0].offsetLeft < shift_offset) el_last.remove();
+      // Change the width of the "pusher" element, so it "pushes" the intervals to the left
+      pusher.css({ width: 0 }).animate({ width: shift_offset + 'px' });
 
+      // Remove the elements falling off the container on the left
+      var last = $('#changes-container .interval:last');
+      if ( last.offset().left < 0) { last.remove() };
+
+      // Reset counter for the current period
       changes_in_current_period = 0;
     }, period);
 
@@ -160,11 +139,6 @@
       socket.disconnect();
     });
 
-    $('#changes-secondary-cnt .interval').live('update_counter', function(e) {
-      $(this).find('.counter').text(changes_in_current_period);
-    });
-
-
     // -- Attach socket.io events ---------------------------------------------
 
     socket.on('connect', function() {
@@ -172,13 +146,22 @@
     });
 
     socket.on('message', function(message) {
-      console.log('Received message:', message)
+      // console.log('Received message:', message)
       if (message.client) {
         db = message;
-        $('<p>Changes in database <strong>' + 'http://'+db.client.host+':'+db.client.port+'/'+db.name + '</strong></p>').appendTo('body');
+        $('body').append( $('<p>Changes in database <strong>' +
+                            'http://'+db.client.host+':'+db.client.port+'/'+db.name +
+                            '</strong></p>') );
       };
       if (message.id) {
-        newChange(message.id);
+        // TODO: This scattered code is stupid
+        // Update counter for this period
+        changes_in_current_period++;
+        // Update numeric representation of changes in this period
+        $('#changes-container .interval:nth-child(2) .counter').text(changes_in_current_period);
+
+        // Create new change element
+        new Change(message.id);
       };
     });
   </script>
