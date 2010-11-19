@@ -73,7 +73,7 @@
     </div>
   </div>
 
-  <button id="stop" name="stop">stop</button>
+  <button id="control" name="control">stop</button>
 
   <script>
 
@@ -88,7 +88,8 @@
     var db,
         period = 1000,
         shift_offset = -1,
-        container  = null;
+        container  = null,
+        looper     = null;
 
     $(function() {
       shift_offset = $('#changes-container .period').first().width(),
@@ -148,15 +149,26 @@
 
     // -- Looper --------------------------------------------------------------
 
-    var looper = setInterval( function() { new Period(); }, period);
+    var start_looper = function() { looper = setInterval( function() { new Period() }, period) };
+    var stop_looper  = function() { clearInterval(looper); }
+    start_looper();
 
 
     // -- Attach GUI events ---------------------------------------------------
 
-    $('#stop').click(function() {
-      clearInterval(looper);
-      socket.disconnect();
-    });
+    $('#control').toggle(
+      function() {
+        $('#db-info').remove();
+        stop_looper();
+        socket.disconnect();
+        $(this).html('start')
+      },
+      function() {
+        start_looper();
+        socket.connect();
+        $(this).html('stop')
+      }
+    );
 
     // -- Attach socket.io events ---------------------------------------------
 
@@ -168,7 +180,7 @@
       // console.log('Received message:', message)
       if (message.client) {
         db = message;
-        $('body').append( $('<p>Displaying changes in database <strong>' +
+        $('body').append( $('<p id="db-info">Displaying changes in database <strong>' +
                             'http://'+db.client.host+':'+db.client.port+'/'+db.name +
                             '</strong></p>') );
       };
