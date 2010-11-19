@@ -20,16 +20,16 @@
         height: 100%;
         overflow: hidden;
         position: absolute; }
-    #changes .interval
+    #changes .period
       { background: #ececec;
         float: right;
         width: 16px; height: 100%;
         margin: 0 0 0 2px; }
-    #changes .interval .inner
+    #changes .period .inner
       { position:absolute;
         width: 16px;
         height: 300px; }
-    #changes .interval .counter
+    #changes .period .counter
       {
         color: #999;
         background-color: #ececec;
@@ -38,7 +38,7 @@
         width: 100%;
         z-index: 900;
         position: absolute; }
-    #changes .interval p
+    #changes .period p
       { background-color: #0091e5;
         margin: 0 0px 0 4px;
         padding: 0;
@@ -48,7 +48,7 @@
         position: absolute;
         bottom: 0;
         right: 0; }
-    #changes .interval p.hide
+    #changes .period p.hide
       { display: none; }
   </style>
 
@@ -56,7 +56,7 @@
 <body>
   <div id="changes">
     <div id="changes-container">
-      <div class="interval">
+      <div class="period" data-counter=0>
         <div class="inner">
           <div class="counter">0</div>
           <p title="" class="hide"></p>
@@ -69,7 +69,7 @@
 
   <script>
 
-    // -- Connect via socket.io -----------------------------------------------
+    // -- Connect to websocket server -----------------------------------------
 
     var socket = new io.Socket(null, {port: config.app.port});
     socket.connect();
@@ -79,44 +79,23 @@
 
     var db,
         period = 1000,
-        changes_in_current_period = 0,
         shift_offset = -1,
         container  = null;
 
     $(function() {
-      shift_offset = $('#changes-container .interval').first().width(),
+      shift_offset = $('#changes-container .period').first().width(),
       container = $('#changes-container');
       container.css( { width : container.parent().width() + ( shift_offset * 2 ),
                        left  : -(shift_offset*2) });
     });
 
-    // -- Change object -------------------------------------------------------
+    // -- Period object -------------------------------------------------------
+    var Period = function() {
 
-    var Change = function(id, doc) {
-      var self = this;
-      this.id  = id;
-      this.url = function() { return 'http://' + db.client.host + ':' + [db.client.port, db.name, this.id].join('/') };
-      this.position = function() { return changes_in_current_period*3+'px' };
+      Period.current = function() { return $('#changes-container .period:nth-child(2)').first() };
 
-      // Build element for representing the change
-      var glyph = $('#changes-container .interval:first p').clone().
-                                                        removeClass('hide').
-                                                        css({ bottom: this.position() }).
-                                                        attr('title', this.url());
-      // Attach events
-      glyph.click(function() {document.location.href=self.url()});
-
-      // Insert element into DOM
-      $('#changes-container .interval:nth-child(2) .inner').append(glyph);
-
-      return this;
-    };
-
-    // -- Looper --------------------------------------------------------------
-
-    var looper = setInterval( function() {
-      var pusher  = $('#changes-container .interval:first'), // Get reference to the first, hidden "pusher" interval element
-          current = pusher.clone();                          // Clone this element as current interval element...
+      var pusher  = $('#changes-container .period:first');   // Get reference to the first, hidden "pusher" interval element
+          current = pusher.clone();                          // Clone this element as current interval element ...
 
       pusher.after(current);                                 // ... and insert it after "pusher"
 
@@ -124,12 +103,44 @@
       pusher.css({ width: 0 }).animate({ width: shift_offset + 'px' });
 
       // Remove the elements falling off the container on the left
-      var last = $('#changes-container .interval:last');
+      var last = $('#changes-container .period:last');
       if ( last.offset().left < 0) { last.remove() };
 
-      // Reset counter for the current period
-      changes_in_current_period = 0;
-    }, period);
+      return this;
+    };
+
+    // -- Change object -------------------------------------------------------
+
+    var Change = function(id, doc) {
+      var self = this;
+      this.id  = id;
+      this.url = function() { return 'http://' + db.client.host + ':' + [db.client.port, db.name, this.id].join('/') };
+      this.position = function() { return Period.current().data('counter')*3+'px' };
+
+      // Build element for representing the change
+      var glyph = $('#changes-container .period:first p').clone().
+                                                        removeClass('hide').
+                                                        css({ bottom: this.position() }).
+                                                        attr('title', this.url());
+
+      // Update the counter for current period
+      Period.current().data('counter', Period.current().data('counter')+1);
+
+      // Attach events
+      glyph.click(function() {document.location.href=self.url()});
+
+      // Insert element into DOM
+      Period.current().find('.inner').append(glyph);
+
+      // Update numeric representation of the counter for current period
+      Period.current().find('.counter').text(Period.current().data('counter'));
+
+      return this;
+    };
+
+    // -- Looper --------------------------------------------------------------
+
+    var looper = setInterval( function() { new Period(); }, period);
 
 
     // -- Attach GUI events ---------------------------------------------------
@@ -154,13 +165,6 @@
                             '</strong></p>') );
       };
       if (message.id) {
-        // TODO: This scattered code is stupid
-        // Update counter for this period
-        changes_in_current_period++;
-        // Update numeric representation of changes in this period
-        $('#changes-container .interval:nth-child(2) .counter').text(changes_in_current_period);
-
-        // Create new change element
         new Change(message.id);
       };
     });
