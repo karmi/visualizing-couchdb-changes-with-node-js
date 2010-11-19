@@ -54,6 +54,12 @@ server = http.createServer(function(req, res){
     		res.write(data, 'utf8');
     		res.end();
     	});
+    case '/bg.png':
+	    res.writeHead(200, {'Content-Type': 'image/png'})
+      fs.readFile(__dirname + '/bg.png', function(err, data){
+    		res.write(data);
+    		res.end();
+    	});
     	break;
   };
 })
