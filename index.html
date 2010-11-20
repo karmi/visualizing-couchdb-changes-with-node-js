@@ -77,117 +77,147 @@
 
   <script>
 
-    // -- Connect to websocket server -----------------------------------------
-
-    var socket = new io.Socket(null, {port: config.app.port});
-    socket.connect();
-
-
-    // -- Setup variables and onload handler ----------------------------------
-
-    var db,
-        period = 1000,
-        shift_offset = -1,
-        container  = null,
-        looper     = null;
-
-    $(function() {
-      shift_offset = $('#changes-container .period').first().width(),
-      container = $('#changes-container');
-      container.css( { width : container.parent().width() + ( shift_offset * 2 ),
-                       left  : -(shift_offset*2) });
-    });
-
-    // -- Period object -------------------------------------------------------
-    var Period = function() {
-
-      Period.current = function() { return $('#changes-container .period:nth-child(2)').first() };
-
+  var Application = {
+  
+    socket       : new io.Socket(null, {port: config.app.port}),
+    db           : null,
+    period       : 1000,
+    shift_offset : -1,
+    container    : null,
+    looper       : null,
+  
+    initialize : function() {
+  
+      // -- Connect to websocket server
+      Application.socket.connect();
+  
+      // -- Setup infrastructure
+      Application.shift_offset = $('#changes-container .period').first().width(),
+      Application.container    = $('#changes-container');
+      Application.container.css( { width : Application.container.parent().width() + ( Application.shift_offset * 2 ),
+                                   left  : -(Application.shift_offset*2) });
+  
+      // -- Start looper
+      Application.Looper.start();
+  
+      // -- Initialize GUI elements
+      Application.ToggleButton.initialize();
+  
+      // -- Attach socket.io events 
+      Application.socket.on('connect', function() {
+        // console.log('Connected to:', socket.host)
+      });
+      Application.socket.on('message', function(message) {
+        // console.log('Received message:', message)
+        if (message.client) {
+          Application.db = message;
+          Application.Info.display();
+        };
+        if (message.id) {
+          new Application.Change(message.id);
+        };
+      });
+  
+    },
+  
+  
+    Period : function() {
+  
+      Application.Period.current = function() { return $('#changes-container .period:nth-child(2)').first() };
+  
       var pusher  = $('#changes-container .period:first');   // Get reference to the first, hidden "pusher" interval element
           current = pusher.clone();                          // Clone this element as current interval element ...
-
+  
       pusher.after(current);                                 // ... and insert it after "pusher"
-
+  
       // Change the width of the "pusher" element, so it "pushes" the intervals to the left
-      pusher.css({ width: 0 }).animate({ width: shift_offset + 'px' });
-
+      pusher.css({ width: 0 }).animate({ width: Application.shift_offset + 'px' });
+  
       // Remove the elements falling off the container on the left
       var last = $('#changes-container .period:last');
       if ( last.offset().left < 0) { last.remove() };
-
+  
       return this;
-    };
-
-    // -- Change object -------------------------------------------------------
-
-    var Change = function(id, doc) {
+    },
+  
+  
+    Change : function(id, doc) {
+  
       var self = this;
       this.id  = id;
-      this.url = function() { return 'http://' + db.client.host + ':' + [db.client.port, db.name, this.id].join('/') };
-      this.position = function() { return Period.current().data('counter')*3+'px' };
-
+      this.url = function() { return 'http://' + Application.db.client.host + ':' + [Application.db.client.port, Application.db.name, this.id].join('/') };
+      this.position = function() { return Application.Period.current().data('counter')*3+'px' };
+  
       // Build element for representing the change
-      var glyph = $('#changes-container .period:first p').clone().
-                                                        removeClass('hide').
-                                                        css({ bottom: this.position() }).
-                                                        attr('title', this.url());
-
+      this.glyph = $('#changes-container .period:first p').clone().
+                                                           removeClass('hide').
+                                                           css({ bottom: this.position() }).
+                                                           attr('title', this.url());
+  
       // Update the counter for current period
-      Period.current().data('counter', Period.current().data('counter')+1);
-
+      Application.Period.current().data('counter', Application.Period.current().data('counter')+1);
+  
       // Attach events
-      glyph.click(function() {document.location.href=self.url()});
-
+      this.glyph.click(function() {document.location.href=self.url()});
+  
       // Insert element into DOM
-      Period.current().find('.inner').append(glyph);
-
+      Application.Period.current().find('.inner').append(this.glyph);
+  
       // Update numeric representation of the counter for current period
-      Period.current().find('.counter').text(Period.current().data('counter'));
-
+      Application.Period.current().find('.counter').text(Application.Period.current().data('counter'));
+  
       return this;
-    };
-
-    // -- Looper --------------------------------------------------------------
-
-    var start_looper = function() { looper = setInterval( function() { new Period() }, period) };
-    var stop_looper  = function() { clearInterval(looper); }
-    start_looper();
-
-
-    // -- Attach GUI events ---------------------------------------------------
-
-    $('#control').toggle(
-      function() {
-        $('#db-info').remove();
-        stop_looper();
-        socket.disconnect();
-        $(this).html('start')
+    },
+  
+  
+    Looper : {
+  
+      start : function() {
+        Application.looper = setInterval( function() { new Application.Period() }, Application.period)
       },
-      function() {
-        start_looper();
-        socket.connect();
-        $(this).html('stop')
+  
+      stop  : function() {
+        clearInterval(Application.looper)
       }
-    );
-
-    // -- Attach socket.io events ---------------------------------------------
-
-    socket.on('connect', function() {
-      // console.log('Connected to:', socket.host)
-    });
-
-    socket.on('message', function(message) {
-      // console.log('Received message:', message)
-      if (message.client) {
-        db = message;
+    },
+  
+  
+    ToggleButton : {
+  
+      initialize : function() {
+        $('#control').toggle(
+           function() {
+             $('#db-info').remove();
+             Application.Looper.stop();
+             Application.socket.disconnect();
+             $(this).html('start')
+           },
+           function() {
+             Application.Looper.start();
+             Application.socket.connect();
+             $(this).html('stop')
+           }
+         );
+      }
+    },
+  
+  
+    Info : {
+      display : function() {
         $('body').append( $('<p id="db-info">Displaying changes in database <strong>' +
-                            'http://'+db.client.host+':'+db.client.port+'/'+db.name +
-                            '</strong></p>') );
-      };
-      if (message.id) {
-        new Change(message.id);
-      };
-    });
+                             'http://'+Application.db.client.host+':'+Application.db.client.port+'/'+Application.db.name +
+                             '</strong></p>') );
+      }
+    }
+  
+  
+  };
+  
+  
+  // -- Initialize the application -------------------------------------------
+  
+  $(function() { Application.initialize() });
+
   </script>
 
 </body>
