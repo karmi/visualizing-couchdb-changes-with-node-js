@@ -125,7 +125,7 @@
   
       Application.Period.current = function() { return $('#changes-container .period:nth-child(2)').first() };
   
-      var pusher  = $('#changes-container .period:first');   // Get reference to the first, hidden "pusher" interval element
+      var pusher  = $('#changes-container .period:first'),   // Get reference to the first, hidden "pusher" interval element
           current = pusher.clone();                          // Clone this element as current interval element ...
   
       pusher.after(current);                                 // ... and insert it after "pusher"
