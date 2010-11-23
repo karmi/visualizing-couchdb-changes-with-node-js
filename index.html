@@ -92,7 +92,7 @@
       Application.socket.connect();
   
       // -- Setup infrastructure
-      Application.shift_offset = $('#changes-container .period').first().width(),
+      Application.shift_offset = $('#changes-container .period').first().width();
       Application.container    = $('#changes-container');
       Application.container.css( { width : Application.container.parent().width() + ( Application.shift_offset * 2 ),
                                    left  : -(Application.shift_offset*2) });
@@ -123,7 +123,7 @@
   
     Period : function() {
   
-      Application.Period.current = function() { return $('#changes-container .period:nth-child(2)').first() };
+      Application.Period.current = function() { return $('#changes-container .period:nth-child(2)').first(); };
   
       var pusher  = $('#changes-container .period:first'),   // Get reference to the first, hidden "pusher" interval element
           current = pusher.clone();                          // Clone this element as current interval element ...
@@ -135,7 +135,7 @@
   
       // Remove the elements falling off the container on the left
       var last = $('#changes-container .period:last');
-      if ( last.offset().left < 0) { last.remove() };
+      if ( last.offset().left < 0) { last.remove(); };
   
       return this;
     },
@@ -145,8 +145,8 @@
   
       var self = this;
       this.id  = id;
-      this.url = function() { return 'http://' + Application.db.client.host + ':' + [Application.db.client.port, Application.db.name, this.id].join('/') };
-      this.position = function() { return Application.Period.current().data('counter')*3+'px' };
+      this.url = function() { return 'http://' + Application.db.client.host + ':' + [Application.db.client.port, Application.db.name, this.id].join('/'); };
+      this.position = function() { return Application.Period.current().data('counter')*3+'px'; };
   
       // Build element for representing the change
       this.glyph = $('#changes-container .period:first p').clone().
@@ -158,7 +158,7 @@
       Application.Period.current().data('counter', Application.Period.current().data('counter')+1);
   
       // Attach events
-      this.glyph.click(function() {document.location.href=self.url()});
+      this.glyph.click(function() { document.location.href=self.url(); });
   
       // Insert element into DOM
       Application.Period.current().find('.inner').append(this.glyph);
@@ -173,11 +173,11 @@
     Looper : {
   
       start : function() {
-        Application.looper = setInterval( function() { new Application.Period() }, Application.period)
+        Application.looper = setInterval( function() { new Application.Period(); }, Application.period);
       },
   
       stop  : function() {
-        clearInterval(Application.looper)
+        clearInterval(Application.looper);
       }
     },
   
@@ -190,12 +190,12 @@
              $('#db-info').remove();
              Application.Looper.stop();
              Application.socket.disconnect();
-             $(this).html('start')
+             $(this).html('start');
            },
            function() {
              Application.Looper.start();
              Application.socket.connect();
-             $(this).html('stop')
+             $(this).html('stop');
            }
          );
       }
@@ -216,7 +216,7 @@
   
   // -- Initialize the application -------------------------------------------
   
-  $(function() { Application.initialize() });
+  $(function() { Application.initialize(); });
 
   </script>
 
